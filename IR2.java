@@ -6,8 +6,6 @@ import java.util.*;
 /**
  * Created by miren_t on 3/21/2015.
  */
-/*TODO: during index construction, term should be compressed using block and front coding
-* */
 public class IR2 {
     static TreeMap<String, String> stopwordsMap= new TreeMap<String, String>();
     static TreeMap<String, TreeMap<Integer, Integer>> indexVersion1= new TreeMap<String, TreeMap<Integer, Integer>>();
@@ -16,13 +14,13 @@ public class IR2 {
     static TreeMap<String, LinkedHashMap<Short, Short>> compressedIndexVersion2= new TreeMap<String, LinkedHashMap<Short, Short>>();
     static TreeMap<String, Integer> termFreq= new TreeMap<String, Integer>();
     static LinkedHashMap<String, List<Object>> testIndexBlockVersion1= new LinkedHashMap<String, List<Object>>();
+    static LinkedHashMap<String, List<Object>> testIndexFrontCoding= new LinkedHashMap<String, List<Object>>();
     static File uncompressedIndexFile, compressedIndexFile;
 
     static int numberOfFiles=0;
     public static void main(String[] args) {
 
         String CRANFIELD_DIRECTORY=args[0];
-        String OUTPUT_PATH="";
 
         try {
             scanFiles(CRANFIELD_DIRECTORY);
@@ -44,7 +42,7 @@ public class IR2 {
         int[][] documents = new int[numberOfFiles + 1][2];
         TreeMap<String, String> stopwords= getStopwords("stopwords");
 
-        System.out.println("Version 1");
+  /*      System.out.println("Version 1");
         System.out.println("Creating index");
         long startTimeVersion1= System.currentTimeMillis();
         for(File files:listOfFiles){
@@ -55,8 +53,6 @@ public class IR2 {
             HashMap<String, Integer> lemmaHashMap= new Lemmatizer().lemmatizeHash(files);
             HashMap<String, Integer> lemmaNormalizedHashMap= removeStopwords(lemmaHashMap, stopwords);
          //working   System.out.println(docId + " " + lemmaNormalizedHashMap.size());
-            //TODO: Version 1: Dictionary compression--> blocked ______ posting file--> gamma
-            //TODO: Version 2: Dictionary compression--> front coding ______ posting file--> delta
 
             createIndex(docID, lemmaNormalizedHashMap, indexVersion1);
         }
@@ -72,10 +68,10 @@ public class IR2 {
         writeCompressedIndex("./", "Index_Version1.compressed", testIndexBlockVersion1);
 
         System.out.println("Done..");
-        System.out.println("Time taken by version 1: " + timeTakenVersion1);
+        System.out.println("Time taken by version 1: " + timeTakenVersion1 + " seconds);
+*/
 
-
-   /*     System.out.println("*******************************************");
+        System.out.println("*******************************************");
         System.out.println("Version 2");
         System.out.println("Creating index");
         long startTimeVersion2= System.currentTimeMillis();
@@ -87,24 +83,116 @@ public class IR2 {
             HashMap<String, Integer> stemmedTokens= getStemmedTokens(tokensInFile);
             HashMap<String, Integer> stemmedNormalizedHashMap= removeStopwords(stemmedTokens, stopwords);
             //working   System.out.println(docId + " " + lemmaNormalizedHashMap.size());
-            //TODO: Version 1: Dictionary compression--> blocked ______ posting file--> gamma
-            //TODO: Version 2: Dictionary compression--> front coding ______ posting file--> delta
 
             createIndex(docID, stemmedNormalizedHashMap, indexVersion2);
         }
+        if(indexVersion2.containsKey(""))
+            indexVersion2.remove("");
+
         double timeTakenVersion2= (System.currentTimeMillis() - startTimeVersion2)/1000;
+
         System.out.println("Writing uncompressed index..");
         writeUncompressedIndex("./", "Index_Version2.uncompressed", indexVersion2);
+
         System.out.println("Done..\nCompressing index..");
-        compressIndex(indexVersion2, compressedIndexVersion2, "delta");
+        frontCoding(indexVersion2);
+    //    System.out.println(testIndexFrontCoding.toString());
+        //     compressIndex(indexVersion2, compressedIndexVersion2, "delta");
+
         System.out.println("Done..\nWriting compressed index..");
-        writeCompressedIndex("./", "Index_Version2.compressed", compressedIndexVersion2);
+        writeCompressedIndex("./", "Index_Version2.compressed", testIndexFrontCoding);
         System.out.println("Done..");
-        System.out.println("Time taken by version 2: " + timeTakenVersion2);
-*/
+
+
+
+        System.out.println("*********Index Info***************");
+        System.out.println("Time taken by version 2: " + timeTakenVersion2 + " seconds");
+        System.out.println("Size of inverted lists in index 2: " + testIndexFrontCoding.size());
+        System.out.println("Information of some terms in index 2");
+
     } /*
     TODO: document frequency --> dF, need file of document information?
     */
+    public static LinkedHashSet<String> prefixTree= new LinkedHashSet<String>();
+    public static void frontCoding(TreeMap<String, TreeMap<Integer, Integer>> index) {
+
+        List<Object> testIndexList= new ArrayList<Object>();
+        LinkedHashMap<Integer, Short> termFreqBlock= new LinkedHashMap<Integer, Short>();
+        LinkedHashSet<Short> deltaEncodingSet= new LinkedHashSet<Short>();
+        Set<String> terms = index.keySet();
+        List<String> termsList = new ArrayList<String>();
+        String termsArray[] = terms.toArray(new String[terms.size()]);
+        int k = 8, currentK = 0, originalGap=0;
+        String prefix = "";
+        String temp = new String("");
+        for (int i = 0; i < termsArray.length; i++) {
+      //      System.out.println(termsArray[i]);
+            if (currentK < k) {
+                termsList.add(currentK, termsArray[i]);
+                currentK++;
+
+            }
+            if (currentK == k || i + 1 == termsArray.length) {
+                if (!(prefix = longestCommonPrefix(termsList)).equals("")) {
+                    temp += "[";
+                    for (int j = 0; j < termsList.size(); j++) {
+                        if (termsList.get(j).startsWith(prefix)) {
+                            if (j == 0)
+                                temp += termsList.get(j).length() + prefix + "*" + termsList.get(j).substring(prefix.length());
+                            if (j > 0) {
+                                temp += termsList.get(j).substring(prefix.length()).length() + "|" + termsList.get(j).substring(prefix.length());
+                            }
+                        } else {
+                            if (j == 0)
+                                temp += termsList.get(j).length() + prefix + "*" + termsList.get(j).substring(0);
+                            if (j > 0) {
+                                temp += termsList.get(j).substring(0).length() + "|" + termsList.get(j).substring(0);
+                            }
+
+                        }
+                        TreeMap<Integer, Integer> postingList= index.get(termsList.get(j));
+                        for(Map.Entry<Integer, Integer> entry: postingList.entrySet()) {
+                            originalGap = Math.abs(entry.getKey() - originalGap);
+                            deltaEncodingSet.add(deltaEncoding(originalGap));
+ //                           System.out.println(originalGap + "=" + deltaEncoding(originalGap));
+                            originalGap = entry.getKey();
+                        }
+                        termFreqBlock.put(j, termFrequency(termsList.get(j), index));
+                    }
+
+                    temp += "]";
+                    testIndexList.add(0, deltaEncodingSet);
+                    testIndexList.add(1, termFreqBlock);
+                    testIndexFrontCoding.put(temp, testIndexList);
+ //                   System.out.println(temp+"="+testIndexList.toString());
+                    currentK = 0;testIndexList.clear();termFreqBlock.clear();
+                    termsList.clear();temp="";originalGap=0;deltaEncodingSet.clear();
+                }
+            }
+        }
+   //     return testIndexFrontCoding;
+    }
+    public static String longestCommonPrefix(List<String> strings){
+        if(strings.size()==0)
+            return "";
+        int stringArrayLength=strings.size();
+        for(int prefixLength=0; prefixLength<strings.get(0).length(); prefixLength++){
+            char c= strings.get(0).charAt(prefixLength);
+            for(int i=1; i<stringArrayLength; i++){
+                if(prefixLength>=strings.get(i).length() || strings.get(i).charAt(prefixLength)!=c){
+                    if(!strings.get(i).substring(0, prefixLength).equals("")){
+                        return strings.get(i).substring(0, prefixLength);
+                    }
+                    else{
+                        stringArrayLength--;
+                        break;
+                    }
+                }
+            }
+        }
+        return strings.get(0);
+    }
+
     public static TreeMap<String, String> getStopwords(String stopwordFile) throws FileNotFoundException {
         Scanner read= new Scanner(new File(stopwordFile));
    //     stopwordsMap=new TreeMap<String, String>();
@@ -125,7 +213,7 @@ public class IR2 {
             stemmer.stem();
             String stemmedToken= stemmer.toString();
             if(stemmedTokens.get(stemmedToken)==null){
-    /*TODO: is this right?*/stemmedTokens.put(stemmedToken, 1);
+                stemmedTokens.put(stemmedToken, 1);
             }
             else{
                 stemmedTokens.put(stemmedToken, stemmedTokens.get(stemmedToken)+1);
@@ -282,14 +370,14 @@ public class IR2 {
             compressedIndex.put(term, postingListWithGaps);
         }
     }
-    public static List<Object> testIndexList= new ArrayList<Object>();
-    public static TreeMap<Integer, Short> termFreqBlock= new TreeMap<Integer, Short>();
-    //public static LinkedHashMap<String, List<Object>> example= new LinkedHashMap<String, List<Object>>();
+
     public static LinkedHashMap<String, List<Object>> blockCompression(TreeMap<String, TreeMap<Integer, Integer>> index){
         int k=8;int currentK=0;
+        LinkedHashMap<Integer, Short> termFreqBlock= new LinkedHashMap<Integer, Short>();
+        List<Object> testIndexList= new ArrayList<Object>();
         String dictionaryString=new String("");
         Set<String> terms= index.keySet();
-        TreeSet<Short> gammaEncodingSet= new TreeSet<Short>();
+        LinkedHashSet<Short> gammaEncodingSet= new LinkedHashSet<Short>();
         int originalGap=0;
 
         String termsArray[]= terms.toArray(new String[terms.size()]);
@@ -309,10 +397,10 @@ public class IR2 {
             }
             if(currentK==k ||  (i+1==termsArray.length)){
                 currentK=0;originalGap=0;
-            testIndexList.add(0, gammaEncodingSet);
-            testIndexList.add(1, termFreqBlock);
+                testIndexList.add(0, gammaEncodingSet);
+                testIndexList.add(1, termFreqBlock);
                 testIndexBlockVersion1.put(dictionaryString, testIndexList);
-                dictionaryString="";
+                dictionaryString="";gammaEncodingSet.clear();
                 testIndexList.clear();termFreqBlock.clear();
             }
         }
@@ -351,7 +439,9 @@ public class IR2 {
     }
 
     public static short deltaEncoding(int valueToEncode){   //valueToEncode=5
-        int offsetUnaryLength=1;
+
+        if(valueToEncode>0){
+            int offsetUnaryLength=1;
         int valueToEncodeCopy=valueToEncode;
 
         while(valueToEncodeCopy>1){
@@ -372,7 +462,8 @@ public class IR2 {
         code= offset | code; // offset= 1|10100= 10101
 
         return (short)code;
-
+        }
+        else return (short)-1;
     }
     /***************************************document information methods***********************************************/
     public static void termFrequencyOfIndex(TreeMap<String, TreeMap<Integer, Integer>> index){
