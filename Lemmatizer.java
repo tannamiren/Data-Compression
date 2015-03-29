@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
+import java.util.TreeMap;
 
 public class Lemmatizer {
     StanfordCoreNLP pipeline;
@@ -25,7 +26,31 @@ public class Lemmatizer {
     }
 
 
-    public HashMap<String, Integer> lemmatize(File file) throws IOException {
+    public TreeMap<String, Integer> lemmatize(File file) throws IOException {
+        String fileContent= Jsoup.parse(file, "UTF-8").text();
+        Annotation annotation= new Annotation(fileContent);
+        pipeline.annotate(annotation);
+        List<CoreMap> sentenceCoreMapList= annotation.get(CoreAnnotations.SentencesAnnotation.class);
+
+        TreeMap<String, Integer> lemmaHashMap= new TreeMap<String, Integer>();
+        for(CoreMap coreMap: sentenceCoreMapList){
+            for(CoreLabel coreLabel: coreMap.get(CoreAnnotations.TokensAnnotation.class)){
+                String lemma = coreLabel.get(CoreAnnotations.LemmaAnnotation.class).toLowerCase();
+
+                if(lemma.matches("[a-zA-Z0-9]+")){
+                    if(lemmaHashMap.get(lemma) == null){
+                        lemmaHashMap.put(lemma, 1);
+                    }
+                    else{
+                        lemmaHashMap.put(lemma, lemmaHashMap.get(lemma)+1);
+                    }
+                }
+            }
+
+        }
+        return lemmaHashMap;
+    }
+    public HashMap<String, Integer> lemmatizeHash(File file) throws IOException {
         String fileContent= Jsoup.parse(file, "UTF-8").text();
         Annotation annotation= new Annotation(fileContent);
         pipeline.annotate(annotation);
