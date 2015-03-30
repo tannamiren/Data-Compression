@@ -95,3 +95,4 @@ document, and the frequency of the most frequent term in the document.
 
 ##Output:
 ![Output](https://github.com/tannamiren/Data-Compression/blob/master/output.PNG)
+![Indexes](https://github.com/tannamiren/Data-Compression/blob/master/indexes.PNG)
