@@ -74,4 +74,18 @@ public class Lemmatizer {
         }
         return lemmaHashMap;
     }
+    public String lemmatizeString(String text) throws IOException {
+        Annotation annotation= new Annotation(text);
+        pipeline.annotate(annotation);
+        String lemma="";
+        List<CoreMap> sentence= annotation.get(CoreAnnotations.SentencesAnnotation.class);
+
+        for(CoreMap coreMap: sentence){
+            for(CoreLabel coreLabel: coreMap.get(CoreAnnotations.TokensAnnotation.class)){
+                lemma = coreLabel.get(CoreAnnotations.LemmaAnnotation.class).toLowerCase();
+            }
+
+        }
+        return lemma;
+    }
 }
