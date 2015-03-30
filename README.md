@@ -15,7 +15,7 @@ methods, lemmas are returned to the calling program, which in this case is IR2.j
 ###Stemmer.java
 Implementation of Porters Stemming algorithm to obtain the root of a given word.
 
-###compiler
+###compile
 Includes statements to compile the main program.
 
 ###run
