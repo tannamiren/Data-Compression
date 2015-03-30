@@ -7,7 +7,7 @@ import java.util.*;
  * Created by miren_t on 3/21/2015.
  */
 public class IR2 {
-    static TreeMap<String, String> stopwordsMap= new TreeMap<String, String>();
+
     static TreeMap<String, TreeMap<Integer, Integer>> indexVersion1= new TreeMap<String, TreeMap<Integer, Integer>>();
     static TreeMap<String, LinkedHashMap<Short, Short>> compressedIndexVersion1= new TreeMap<String, LinkedHashMap<Short, Short>>();
     static TreeMap<String, TreeMap<Integer, Integer>> indexVersion2= new TreeMap<String, TreeMap<Integer, Integer>>();
@@ -38,7 +38,6 @@ public class IR2 {
 
         File listOfFiles[] = file.listFiles();
         Arrays.sort(listOfFiles);
-        getStopwords("stopwords");
         numberOfFiles=listOfFiles.length;
         int documents[][] = new int[numberOfFiles+1][2];
         TreeMap<String, String> stopwords= getStopwords("stopwords");
@@ -57,13 +56,13 @@ public class IR2 {
 
             createIndex(docID, lemmaNormalizedHashMap, indexVersion1);
         }
-        timeTakenVersion1= (System.currentTimeMillis() - startTimeVersion1)/1000;
 
         System.out.println("Writing uncompressed index..");
         writeUncompressedIndex("./", "Index_Version1.uncompressed", indexVersion1);
 
         System.out.println("Done..\nCompressing index..");
         blockCompression(indexVersion1);
+        timeTakenVersion1= (System.currentTimeMillis() - startTimeVersion1)/1000;
 
         System.out.println("Done..\nWriting compressed index..");
         writeCompressedIndex("./", "Index_Version1.compressed", testIndexBlockVersion1);
@@ -90,15 +89,12 @@ public class IR2 {
         if(indexVersion2.containsKey(""))
             indexVersion2.remove("");
 
-        timeTakenVersion2= (System.currentTimeMillis() - startTimeVersion2)/1000;
-
         System.out.println("Writing uncompressed index..");
         writeUncompressedIndex("./", "Index_Version2.uncompressed", indexVersion2);
 
         System.out.println("Done..\nCompressing index..");
         frontCoding(indexVersion2);
-    //    System.out.println(testIndexFrontCoding.toString());
-        //     compressIndex(indexVersion2, compressedIndexVersion2, "delta");
+        timeTakenVersion2= (System.currentTimeMillis() - startTimeVersion2)/1000;
 
         System.out.println("Done..\nWriting compressed index..");
         writeCompressedIndex("./", "Index_Version2.compressed", testIndexFrontCoding);
@@ -332,6 +328,7 @@ public class IR2 {
     }
 
     public static TreeMap<String, String> getStopwords(String stopwordFile) throws FileNotFoundException {
+        TreeMap<String, String> stopwordsMap= new TreeMap<String, String>();
         Scanner read= new Scanner(new File(stopwordFile));
    //     stopwordsMap=new TreeMap<String, String>();
         while(read.hasNext()){
