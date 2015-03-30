@@ -1,1 +1,1 @@
-java -cp .:jsoup-1.8.1.jar:$CORENLP_HOME/joda-time.jar:$CORENLP_HOME/jollyday.jar:$CORENLP_HOME/ejml-0.23.jar:$CORENLP_HOME/xom.jar:$CORENLP_HOME/javax.json.jar:$CORENLP_HOME/stanford-corenlp-3.4.1.jar:$CORENLP_HOME/stanford-corenlp-3.4.1-models.jar IR2 ./Cranfield_Collection
+java -cp .:jsoup-1.8.1.jar:$corenlp/joda-time.jar:$corenlp/jollyday.jar:$corenlp/ejml-0.23.jar:$corenlp/xom.jar:$corenlp/javax.json.jar:$corenlp/stanford-corenlp-3.4.1.jar:$corenlp/stanford-corenlp-3.4.1-models.jar IR2 ./Cranfield_Collection
