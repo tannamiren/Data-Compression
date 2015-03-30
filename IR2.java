@@ -16,7 +16,8 @@ public class IR2 {
     static LinkedHashMap<String, List<Object>> testIndexBlockVersion1= new LinkedHashMap<String, List<Object>>();
     static LinkedHashMap<String, List<Object>> testIndexFrontCoding= new LinkedHashMap<String, List<Object>>();
     static File uncompressedIndexFile, compressedIndexFile;
-
+    static double timeTakenVersion1=0;
+    static double timeTakenVersion2=0;
     static int numberOfFiles=0;
     public static void main(String[] args) {
 
@@ -39,10 +40,10 @@ public class IR2 {
         Arrays.sort(listOfFiles);
         getStopwords("stopwords");
         numberOfFiles=listOfFiles.length;
-        int[][] documents = new int[numberOfFiles + 1][2];
+        int documents[][] = new int[numberOfFiles+1][2];
         TreeMap<String, String> stopwords= getStopwords("stopwords");
 
-  /*      System.out.println("Version 1");
+        System.out.println("Version 1");
         System.out.println("Creating index");
         long startTimeVersion1= System.currentTimeMillis();
         for(File files:listOfFiles){
@@ -56,7 +57,7 @@ public class IR2 {
 
             createIndex(docID, lemmaNormalizedHashMap, indexVersion1);
         }
-        double timeTakenVersion1= (System.currentTimeMillis() - startTimeVersion1)/1000;
+        timeTakenVersion1= (System.currentTimeMillis() - startTimeVersion1)/1000;
 
         System.out.println("Writing uncompressed index..");
         writeUncompressedIndex("./", "Index_Version1.uncompressed", indexVersion1);
@@ -68,8 +69,7 @@ public class IR2 {
         writeCompressedIndex("./", "Index_Version1.compressed", testIndexBlockVersion1);
 
         System.out.println("Done..");
-        System.out.println("Time taken by version 1: " + timeTakenVersion1 + " seconds);
-*/
+
 
         System.out.println("*******************************************");
         System.out.println("Version 2");
@@ -84,12 +84,13 @@ public class IR2 {
             HashMap<String, Integer> stemmedNormalizedHashMap= removeStopwords(stemmedTokens, stopwords);
             //working   System.out.println(docId + " " + lemmaNormalizedHashMap.size());
 
+            updateDoclenInfo(documents, docID, stemmedTokens, stemmedNormalizedHashMap);
             createIndex(docID, stemmedNormalizedHashMap, indexVersion2);
         }
         if(indexVersion2.containsKey(""))
             indexVersion2.remove("");
 
-        double timeTakenVersion2= (System.currentTimeMillis() - startTimeVersion2)/1000;
+        timeTakenVersion2= (System.currentTimeMillis() - startTimeVersion2)/1000;
 
         System.out.println("Writing uncompressed index..");
         writeUncompressedIndex("./", "Index_Version2.uncompressed", indexVersion2);
@@ -103,17 +104,154 @@ public class IR2 {
         writeCompressedIndex("./", "Index_Version2.compressed", testIndexFrontCoding);
         System.out.println("Done..");
 
-
-
-        System.out.println("*********Index Info***************");
-        System.out.println("Time taken by version 2: " + timeTakenVersion2 + " seconds");
-        System.out.println("Size of inverted lists in index 2: " + testIndexFrontCoding.size());
-        System.out.println("Information of some terms in index 2");
+        displayData();
+        writeDoclenFile("./", "documentsInfo", documents);
 
     } /*
     TODO: document frequency --> dF, need file of document information?
     */
-    public static LinkedHashSet<String> prefixTree= new LinkedHashSet<String>();
+    /*********************data collection***************************/
+    public static void updateDoclenInfo(int documents[][], int docID, HashMap<String, Integer> stemmedTokens, HashMap<String, Integer> stemmedNormalizedHashMap){
+        int totalFileStems=0, max_tf=0;
+        Set<String> fileStems= stemmedTokens.keySet();
+        for(String f:fileStems){
+            totalFileStems+=stemmedTokens.get(f);
+        }
+
+        Set<String> normalizedFileStems= stemmedNormalizedHashMap.keySet();
+        for(String n:normalizedFileStems){
+            max_tf=Math.max(max_tf, stemmedNormalizedHashMap.get(n));
+        }
+        documents[docID][0]=totalFileStems;
+        documents[docID][1]=max_tf;
+    }
+    public static void writeDoclenFile(String directoryPath, String fileName, int documents[][]) throws IOException {
+        File doclen= new File(directoryPath + "/" + fileName);
+        ObjectOutputStream objectOutputStream= new ObjectOutputStream(new FileOutputStream(doclen));
+        objectOutputStream.writeObject(documents);
+        objectOutputStream.flush();
+        objectOutputStream.close();
+    }
+    public static void displayData() throws IOException {
+        String term1="Reynolds"; String term2="NASA"; String term3="Prandtl"; String term4="flow";
+        String term5="pressure"; String term6="boundary"; String term7="shock";
+
+        String versionData="";
+        String term1v1=new Lemmatizer().lemmatizeString("Reynolds".toLowerCase());
+        versionData+="Reynolds\t" + documentFrequency(term1v1, indexVersion1) +
+                "\t\t" + termFreq(term1v1, indexVersion1) + "\t\t" + getPostingSize(term1v1, indexVersion1) + " \n";
+
+        String term2v1= new Lemmatizer().lemmatizeString("NASA".toLowerCase());
+        versionData+="NASA\t\t" + documentFrequency(term2v1, indexVersion1) +
+                "\t\t" + termFreq(term2v1, indexVersion1) + "\t\t" + getPostingSize(term2v1, indexVersion1) + " \n";
+
+        String term3v1= new Lemmatizer().lemmatizeString("Prandtl".toLowerCase());
+        versionData+="Prandtl\t\t" + documentFrequency(term3v1, indexVersion1) +
+                "\t\t" + termFreq(term3v1, indexVersion1) + "\t\t" + getPostingSize(term3v1, indexVersion1) + " \n";
+
+        String term4v1= new Lemmatizer().lemmatizeString("flow".toLowerCase());
+        versionData+="flow\t\t" + documentFrequency(term4v1, indexVersion1) +
+                "\t\t" + termFreq(term4v1, indexVersion1) + "\t\t" + getPostingSize(term4v1, indexVersion1) + " \n";
+
+        String term5v1= new Lemmatizer().lemmatizeString("pressure".toLowerCase());
+        versionData+="pressure\t" + documentFrequency(term5v1, indexVersion1) +
+                "\t\t" + termFreq(term5v1, indexVersion1) + "\t\t" + getPostingSize(term5v1, indexVersion1) + " \n";
+
+        String term6v1= new Lemmatizer().lemmatizeString("boundary".toLowerCase());
+        versionData+="boundary\t" + documentFrequency(term6v1, indexVersion1) +
+                "\t\t" + termFreq(term6v1, indexVersion1) + "\t\t" + getPostingSize(term6v1, indexVersion1) + "\n";
+
+        String term7v1= new Lemmatizer().lemmatizeString("shock".toLowerCase());
+        versionData+="shock\t\t" + documentFrequency(term7v1, indexVersion1) +
+                "\t\t" + termFreq(term7v1, indexVersion1) + "\t\t" + getPostingSize(term7v1, indexVersion1) + "\n";
+
+        System.out.println("*********Index Info***************");
+        System.out.println("Time taken by version 1: " + timeTakenVersion1 + " seconds");
+        System.out.println("Size of uncompressed index: " + (new File("Index_Version1.uncompressed").length())/1024 + " KiB");
+        System.out.println("Size of compressed index: " + (new File("Index_Version1.compressed").length())/1024 + " KiB");
+        System.out.println("Size of inverted lists in index 1: " + testIndexBlockVersion1.size());
+        System.out.println("Information of some terms in index 1");
+
+        System.out.println("Term\tDocument Frequency\tTerm Frequency\tPosting Size");
+        System.out.println(versionData);
+
+
+        System.out.println("*********Index Info***************");
+        System.out.println("Time taken by version 2: " + timeTakenVersion2 + " seconds");
+        System.out.println("Size of uncompressed index: " + (new File("Index_Version2.uncompressed").length())/1024 + " KiB");
+        System.out.println("Size of compressed index: " + (new File("Index_Version2.compressed").length())/1024 + " KiB");
+        System.out.println("Size of inverted lists in index 2: " + testIndexFrontCoding.size());
+        System.out.println("Information of some terms in index 2");
+
+        System.out.println("Term\tDocument Frequency\tTerm Frequency\tPosting Size");
+        Stemmer stemmer= new Stemmer();
+
+        stemmer.add(term1.toLowerCase().toCharArray(), term1.length());
+        stemmer.stem();
+        String term1v2=stemmer.toString();
+        System.out.println("Reynolds\t" + documentFrequency(term1v2, indexVersion2) +
+                "\t\t" + termFreq(term1v2, indexVersion2) + "\t\t" + getPostingSize(term1v2, indexVersion2) + " ");
+
+        stemmer.add(term2.toLowerCase().toCharArray(), term2.length());
+        stemmer.stem();
+        String term2v2=stemmer.toString();
+        System.out.println("NASA\t\t" + documentFrequency(term2v2, indexVersion2) +
+                "\t\t" + termFreq(term2v2, indexVersion2) + "\t\t" + getPostingSize(term2v2, indexVersion2) + " ");
+
+        stemmer.add(term3.toLowerCase().toCharArray(), term3.length());
+        stemmer.stem();
+        String term3v2=stemmer.toString();
+        System.out.println("Prandtl\t\t" + documentFrequency(term3v2, indexVersion2) +
+                "\t\t" + termFreq(term3v2, indexVersion2) + "\t\t" + getPostingSize(term3v2, indexVersion2) + " ");
+
+        stemmer.add(term4.toLowerCase().toCharArray(), term4.length());
+        stemmer.stem();
+        String term4v2=stemmer.toString();
+        System.out.println("flow\t\t" + documentFrequency(term4v2, indexVersion2) +
+                "\t\t" + termFreq(term4v2, indexVersion2) + "\t\t" + getPostingSize(term4v2, indexVersion2) + " ");
+
+        stemmer.add(term5.toLowerCase().toCharArray(), term5.length());
+        stemmer.stem();
+        String term5v2=stemmer.toString();
+        System.out.println("pressure\t" + documentFrequency(term5v2, indexVersion2) +
+                "\t\t" + termFreq(term5v2, indexVersion2) + "\t\t" + getPostingSize(term5v2, indexVersion2) + " ");
+
+        stemmer.add(term6.toLowerCase().toCharArray(), term6.length());
+        stemmer.stem();
+        String term6v2=stemmer.toString();
+        System.out.println("boundary\t" + documentFrequency(term6v2, indexVersion2) +
+                "\t\t" + termFreq(term6v2, indexVersion2) + "\t\t" + getPostingSize(term6v2, indexVersion2) + " ");
+
+        stemmer.add(term7.toLowerCase().toCharArray(), term7.length());
+        stemmer.stem();
+        String term7v2=stemmer.toString();
+        System.out.println("shock\t\t" + documentFrequency(term7v2, indexVersion2) +
+                "\t\t" + termFreq(term7v2, indexVersion2) + "\t\t" + getPostingSize(term7v2, indexVersion2) + " ");
+
+    }
+    public static int documentFrequency(String term, TreeMap<String, TreeMap<Integer, Integer>> index){
+        TreeMap<Integer, Integer> posting= index.get(term);
+        if(posting!=null)
+            return posting.size();
+        return 0;
+    }
+    public static int termFreq(String term, TreeMap<String, TreeMap<Integer, Integer>> index){
+        TreeMap<Integer, Integer> posting= index.get(term);
+        int count=0;
+        for(Map.Entry<Integer, Integer> entry: posting.entrySet())
+            count+= entry.getValue();
+        return count;
+    }
+    public static long getPostingSize(String term, TreeMap<String, TreeMap<Integer, Integer>> index) throws IOException {
+        TreeMap<Integer, Integer> posting= index.get(term);
+        File tempFile= new File("TempPostingFile");
+        ObjectOutputStream objectOutputStream= new ObjectOutputStream(new FileOutputStream(tempFile));
+        objectOutputStream.writeObject(posting);
+        objectOutputStream.close();
+        objectOutputStream.flush();
+        return tempFile.length();
+    }
+
     public static void frontCoding(TreeMap<String, TreeMap<Integer, Integer>> index) {
 
         List<Object> testIndexList= new ArrayList<Object>();
@@ -406,9 +544,7 @@ public class IR2 {
         }
         return testIndexBlockVersion1;
     }
-    public static void compressIndexTest(){
 
-    }
     public static short gammaEncoding(int valueToEncode){   //valueToEncode= 5
 
         if(valueToEncode>0){
